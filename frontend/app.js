@@ -1,1 +1,1 @@
-// test JS content for RiadPricer
+// test content v3
