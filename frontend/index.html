@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RiadPricer — Revenue Management pour Riads de Marrakech</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="navbar">
+  <div class="nav-inner">
+    <div class="logo">🕌 RiadPricer</div>
+    <div class="nav-links">
+      <a href="#fonctionnalites">Fonctionnalités</a>
+      <a href="#tarifs">Tarifs</a>
+      <a href="#onboarding" class="btn-nav">Analyser mon Riad</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-content">
+    <span class="badge">🇲🇦 Spécialement conçu pour Marrakech</span>
+    <h1>Vendez vos nuits<br><span class="gold">au meilleur prix,</span><br>chaque jour</h1>
+    <p>RiadPricer analyse vos concurrents sur Booking, Airbnb et Google Hotels, les événements à Marrakech, les vacances scolaires de 30+ pays et vous donne <strong>le prix parfait</strong> pour maximiser vos revenus.</p>
+    <div class="hero-btns">
+      <a href="#onboarding" class="btn-primary">Analyser mon Riad →</a>
+      <a href="#fonctionnalites" class="btn-ghost">Voir les fonctionnalités</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><span class="stat-num">+34%</span><span class="stat-label">de revenus moyens</span></div>
+      <div class="stat"><span class="stat-num">20+</span><span class="stat-label">concurrents analysés</span></div>
+      <div class="stat"><span class="stat-num">30+</span><span class="stat-label">pays de vacances suivis</span></div>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div class="price-card float">
+      <div class="price-card-header">💰 Prix recommandé ce soir</div>
+      <div class="price-big">1 850 MAD</div>
+      <div class="price-sub">↑ +12% vs hier — Festival Gnaoua ce week-end</div>
+      <div class="price-range"><span>Concurrents: 1 400–2 100 MAD</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ONBOARDING -->
+<section class="onboarding-section" id="onboarding">
+  <div class="container">
+    <h2>Analysez votre Riad en <span class="gold">30 secondes</span></h2>
+    <p class="section-sub">Entrez le nom de votre riad — nous récupérons toutes les informations automatiquement</p>
+
+    <!-- STEP 1: Search -->
+    <div class="step-card" id="stepSearch">
+      <h3>🔍 Étape 1 — Recherche de votre Riad</h3>
+      <div class="search-wrap">
+        <input type="text" id="searchInput" placeholder="Tapez le nom de votre riad ex: Riad Laila Marrakech" class="search-input" oninput="onSearchType(this.value)">
+        <button class="btn-search" onclick="searchRiad()">Rechercher</button>
+      </div>
+      <div id="searchResults" class="search-results hidden"></div>
+      <div id="searchLoading" class="search-loading hidden">
+        <div class="mini-spinner"></div> Recherche en cours sur Google Hotels, Booking.com et TripAdvisor...
+      </div>
+    </div>
+
+    <!-- STEP 2: Confirm & rooms -->
+    <div class="step-card hidden" id="stepConfirm">
+      <h3>✅ Étape 2 — Confirmation des informations</h3>
+      <div class="riad-found-card" id="riadFoundCard"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nombre de chambres *</label>
+          <input type="number" id="roomCount" placeholder="Ex: 8" min="1" max="50" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Taux d'occupation actuel</label>
+          <select id="occupation" class="form-input">
+            <option value="30">Moins de 40%</option>
+            <option value="50">40% – 60%</option>
+            <option value="70">60% – 80%</option>
+            <option value="85">Plus de 80%</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn-primary full" onclick="runFullAnalysis()">🚀 Lancer l'analyse complète</button>
+    </div>
+  </div>
+</section>
+
+<!-- LOADING OVERLAY -->
+<div id="loadingOverlay" class="loading-overlay hidden">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <div id="loadingTitle">Analyse en cours...</div>
+    <div id="loadingText" class="load-sub">Initialisation...</div>
+    <div class="progress-bar-wrap"><div id="progressBar" class="progress-bar" style="width:0%"></div></div>
+    <div class="loading-steps" id="loadingSteps"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<section id="dashboard" class="dashboard hidden">
+  <div class="container-wide">
+    <div class="dash-header">
+      <div>
+        <h2>🏨 Dashboard — <span id="dashRiadName"></span></h2>
+        <p class="dash-sub">Analyse complète • <span id="dashDate"></span></p>
+      </div>
+      <div class="dash-actions">
+        <button class="btn-pdf" onclick="downloadPDF()">📥 Télécharger le rapport PDF</button>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi-card green">
+        <div class="kpi-icon">💰</div>
+        <div class="kpi-label">Prix Recommandé ce Soir</div>
+        <div class="kpi-value" id="kpiPrice">—</div>
+        <div class="kpi-change" id="kpiChange">—</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-icon">🏆</div>
+        <div class="kpi-label">Position sur le Marché</div>
+        <div class="kpi-value" id="kpiRank">—</div>
+        <div class="kpi-change" id="kpiRankSub">Sur 20 concurrents</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-icon">📈</div>
+        <div class="kpi-label">Gain Potentiel / Mois</div>
+        <div class="kpi-value" id="kpiGain">—</div>
+        <div class="kpi-change">En optimisant vos prix</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-icon">🌍</div>
+        <div class="kpi-label">Prochain Pic de Demande</div>
+        <div class="kpi-value" id="kpiPeak">—</div>
+        <div class="kpi-change" id="kpiPeakSub">—</div>
+      </div>
+    </div>
+
+    <!-- Riad Info -->
+    <div class="riad-info-bar" id="riadInfoBar"></div>
+
+    <!-- Main Grid -->
+    <div class="main-grid">
+      <div class="dash-card big">
+        <div class="card-header">
+          <h3>🏨 Analyse Concurrentielle — 20 Riads Réels</h3>
+          <span class="live-badge">🔴 DONNÉES RÉELLES</span>
+        </div>
+        <div class="table-wrap">
+          <table class="comp-table">
+            <thead>
+              <tr><th>#</th><th>Riad</th><th>Source</th><th>Prix/Nuit</th><th>Note</th><th>Chambres</th><th>Vs Vous</th></tr>
+            </thead>
+            <tbody id="competitorTable"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="dash-card">
+        <div class="card-header">
+          <h3>🎪 Événements & Vacances 2025-2026</h3>
+          <span class="events-count" id="eventsCount">—</span>
+        </div>
+        <div class="events-tabs">
+          <button class="etab active" onclick="showEventsTab('events',this)">Événements</button>
+          <button class="etab" onclick="showEventsTab('vacances',this)">Vacances Scolaires</button>
+        </div>
+        <div id="eventsPanel" class="events-list"></div>
+        <div id="vacancesPanel" class="events-list hidden"></div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+      <div class="dash-card">
+        <h3>📊 Analyse des Prix du Marché — Distribution</h3>
+        <canvas id="priceDistChart" height="200"></canvas>
+      </div>
+      <div class="dash-card">
+        <h3>🗓️ Calendrier Tarifaire — Prochains 30 jours</h3>
+        <div id="priceCalendar" class="price-calendar"></div>
+        <div class="cal-legend">
+          <span class="cal-dot high"></span>Haute demande
+          <span class="cal-dot med"></span>Moyenne
+          <span class="cal-dot low"></span>Basse saison
+        </div>
+      </div>
+    </div>
+
+    <!-- Recommendation -->
+    <div class="recommendation-box" id="recBox">
+      <div class="rec-icon">🤖</div>
+      <div class="rec-content">
+        <h3>Recommandation RiadPricer IA</h3>
+        <p id="recText">—</p>
+      </div>
+      <div class="rec-actions">
+        <button class="btn-pdf large" onclick="downloadPDF()">📥 Télécharger le rapport PDF complet</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="fonctionnalites" class="features-section">
+  <div class="container">
+    <h2>Tout ce dont vous avez besoin pour <span class="gold">maximiser vos revenus</span></h2>
+    <div class="features-grid">
+      <div class="feature-card"><div class="feature-icon">🔍</div><h3>Recherche Automatique</h3><p>Tapez le nom de votre riad et nous récupérons automatiquement toutes les informations depuis Google Hotels, Booking et TripAdvisor.</p></div>
+      <div class="feature-card"><div class="feature-icon">🏨</div><h3>20 Concurrents Réels</h3><p>Analyse de 20 riads réellement existants et similaires au vôtre. Prix, notes, disponibilités mis à jour en temps réel.</p></div>
+      <div class="feature-card"><div class="feature-icon">🎪</div><h3>Événements Marrakech</h3><p>Festival Gnaoua, Marathon, Fashion Week, Ramadan... Tous les événements qui impactent la demande, sourcés sur 50+ sites.</p></div>
+      <div class="feature-card"><div class="feature-icon">🌍</div><h3>Vacances 30+ Pays</h3><p>France, Espagne, UK, Allemagne, Italie, USA, Belgique, Pays-Bas... Anticipez chaque vague de touristes européens et américains.</p></div>
+      <div class="feature-card"><div class="feature-icon">📥</div><h3>Rapport PDF Complet</h3><p>Téléchargez un rapport PDF professionnel avec toute l'analyse : concurrents, événements, recommandations de prix.</p></div>
+      <div class="feature-card"><div class="feature-icon">📊</div><h3>Analyse des Prix</h3><p>Distribution des prix du marché, positionnement de votre riad, écarts et opportunités identifiées automatiquement.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="tarifs" class="pricing-section">
+  <div class="container">
+    <h2>Des tarifs <span class="gold">accessibles</span> pour chaque riad</h2>
+    <p class="section-sub">Sans engagement • Annulez à tout moment • Support en français et arabe</p>
+    <div class="pricing-grid">
+      <div class="price-plan">
+        <div class="plan-name">Starter</div>
+        <div class="plan-price">290 MAD<span>/mois</span></div>
+        <ul class="plan-features">
+          <li>✓ 1 Riad</li><li>✓ Analyse hebdomadaire</li><li>✓ 10 concurrents suivis</li>
+          <li>✓ Événements Marrakech</li><li>✓ Vacances 10 pays</li><li>✓ Rapport PDF mensuel</li>
+          <li>✗ Alertes temps réel</li><li>✗ Vacances 30 pays</li>
+        </ul>
+        <button class="btn-outline">Commencer</button>
+      </div>
+      <div class="price-plan featured">
+        <div class="plan-badge">⭐ Plus populaire</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">590 MAD<span>/mois</span></div>
+        <ul class="plan-features">
+          <li>✓ 1 Riad</li><li>✓ Analyse quotidienne</li><li>✓ 20 concurrents suivis</li>
+          <li>✓ Événements Marrakech</li><li>✓ Vacances 30+ pays</li><li>✓ Rapport PDF hebdomadaire</li>
+          <li>✓ Alertes WhatsApp & Email</li><li>✓ Calendrier tarifaire 30j</li>
+        </ul>
+        <button class="btn-primary">Commencer</button>
+      </div>
+      <div class="price-plan">
+        <div class="plan-name">Premium</div>
+        <div class="plan-price">990 MAD<span>/mois</span></div>
+        <ul class="plan-features">
+          <li>✓ Jusqu'à 3 Riads</li><li>✓ Analyse temps réel 24/7</li><li>✓ 20+ concurrents suivis</li>
+          <li>✓ Événements Marrakech</li><li>✓ Vacances 30+ pays</li><li>✓ Rapports PDF illimités</li>
+          <li>✓ Alertes WhatsApp & Email</li><li>✓ Support prioritaire dédié</li>
+        </ul>
+        <button class="btn-outline">Commencer</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div><div class="logo">🕌 RiadPricer</div><p>Le Revenue Management intelligent pour les riads de Marrakech.</p></div>
+      <div><h4>Produit</h4><a href="#">Fonctionnalités</a><a href="#">Tarifs</a></div>
+      <div><h4>Support</h4><a href="#">FAQ</a><a href="#">Contact</a><a href="#">WhatsApp</a></div>
+      <div><h4>Contact</h4><p>📧 contact@riadpricer.com</p><p>📱 +212 6XX XXX XXX</p><p>🇲🇦 Marrakech, Maroc</p></div>
+    </div>
+    <div class="footer-bottom">© 2025 RiadPricer — Tous droits réservés</div>
+  </div>
+</footer>
+</body>
+</html>
